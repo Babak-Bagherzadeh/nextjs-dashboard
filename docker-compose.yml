@@ -1,0 +1,35 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+    ports:
+      - "3000:3000"
+    environment:
+      POSTGRES_URL: postgres://postgres:${DB_PASSWORD:-postgres}@db:5432/dashboard
+      DB_SSL: "disable"            # دیتابیس لوکال SSL ندارد
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET را در فایل .env تنظیم کنید}
+      AUTH_URL: http://localhost:3000/api/auth
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: dashboard
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dashboard"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
